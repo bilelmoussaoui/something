@@ -1,12 +1,73 @@
 use super::{
-    AppId, ApplicationType, Category, ContentRating, Kudo, Language, Launchable, ProjectUrl,
-    Provide, Release, Screenshot,
+    AppId, Category, ContentRating, Icon, Kudo, Language, Launchable, ProjectUrl, Provide, Release,
+    Screenshot,
 };
 use crate::types::{TranslatableString, TranslatableVec};
+use chrono::{DateTime, NaiveDate, NaiveDateTime, TimeZone, Utc};
 use serde::de;
 use serde::Deserialize;
 use std::str::FromStr;
 use url::Url;
+
+pub(crate) fn icon_deserialize<'de, D>(deserializer: D) -> Result<Vec<Icon>, D::Error>
+where
+    D: de::Deserializer<'de>,
+{
+    #[derive(Debug, Deserialize)]
+    struct PIcon {
+        #[serde(rename = "type", default)]
+        pub _type: Option<String>,
+        width: Option<u32>,
+        height: Option<u32>,
+        #[serde(rename = "$value")]
+        path: String,
+    };
+
+    let picons: Vec<PIcon> = Vec::deserialize(deserializer)?;
+    Ok(picons
+        .into_iter()
+        .map(
+            |pi| match pi._type.unwrap_or("cached".to_string()).as_ref() {
+                "stock" => Icon::Stock(pi.path),
+                "local" => Icon::Local {
+                    path: pi.path.into(),
+                    width: pi.width,
+                    height: pi.height,
+                },
+                "remote" => Icon::Remote {
+                    url: Url::from_str(&pi.path).unwrap(),
+                    width: pi.width,
+                    height: pi.height,
+                },
+                _ => Icon::Cached(pi.path),
+            },
+        )
+        .collect::<Vec<Icon>>())
+}
+
+pub(crate) fn timestamp_deserialize<'de, D>(
+    deserializer: D,
+) -> Result<Option<chrono::DateTime<chrono::Utc>>, D::Error>
+where
+    D: de::Deserializer<'de>,
+{
+    let s = String::deserialize(deserializer);
+    match s {
+        Ok(timestamp) => Ok(Some(
+            chrono::Utc
+                .datetime_from_str(&timestamp, "%s")
+                .or_else(
+                    |_: chrono::ParseError| -> Result<DateTime<Utc>, chrono::ParseError> {
+                        let date: NaiveDateTime =
+                            NaiveDate::parse_from_str(&timestamp, "%Y-%m-%d")?.and_hms(0, 0, 0);
+                        Ok(DateTime::<Utc>::from_utc(date, chrono::Utc))
+                    },
+                )
+                .map_err(serde::de::Error::custom)?,
+        )),
+        Err(_) => Ok(None),
+    }
+}
 
 pub(crate) fn app_id_deserialize<'de, D>(deserializer: D) -> Result<AppId, D::Error>
 where
@@ -37,7 +98,7 @@ where
     D: de::Deserializer<'de>,
 {
     let mut contents: Vec<ContentRating> = Vec::deserialize(deserializer)?;
-    contents.sort_by(|a, b| a.version.cmp(&b.version));
+    contents.sort_by(|a, b| b.version.cmp(&a.version));
 
     Ok(contents.into_iter().next())
 }
@@ -66,16 +127,6 @@ where
         translatable.add_for_lang(&t.lang.unwrap_or("default".to_string()), &t.text);
     });
     Ok(translatable)
-}
-
-pub(crate) fn component_type_deserialize<'de, D>(
-    deserializer: D,
-) -> Result<ApplicationType, D::Error>
-where
-    D: de::Deserializer<'de>,
-{
-    let s = String::deserialize(deserializer)?;
-    Ok(ApplicationType::from(s.as_str()))
 }
 
 pub(crate) fn kudos_deserialize<'de, D>(deserializer: D) -> Result<Vec<Kudo>, D::Error>
@@ -237,17 +288,27 @@ where
     D: de::Deserializer<'de>,
 {
     #[derive(Debug, Deserialize)]
+    #[serde(rename_all = "camelCase")]
+    struct PCategories {
+        #[serde(rename = "$value")]
+        pub categories: Vec<PCategory>,
+    };
+    #[derive(Debug, Deserialize)]
     struct PCategory {
         #[serde(rename = "$value", default)]
-        pub names: Vec<String>,
+        pub categories: Vec<String>,
     };
 
-    let categories: PCategory = PCategory::deserialize(deserializer)?;
-    Ok(categories
-        .names
-        .into_iter()
-        .map(|c| Category::from_str(&c).unwrap())
-        .collect::<Vec<Category>>())
+    let c: PCategories = PCategories::deserialize(deserializer)?;
+
+    let mut categories = Vec::new();
+    c.categories.into_iter().for_each(|c| {
+        c.categories.into_iter().for_each(|category: String| {
+            categories.push(Category::from_str(&category).unwrap_or(Category::Unknown(category)))
+        })
+    });
+
+    Ok(categories)
 }
 
 pub(crate) fn urls_deserialize<'de, D>(deserializer: D) -> Result<Vec<ProjectUrl>, D::Error>

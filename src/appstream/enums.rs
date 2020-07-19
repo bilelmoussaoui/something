@@ -1,34 +1,34 @@
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
-use std::str::FromStr;
+use strum_macros::EnumString;
 use url::Url;
 
-#[derive(Debug, Serialize, PartialEq)]
-pub enum ApplicationType {
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "kebab-case")]
+pub enum ComponentType {
     Runtime,
-    Cli,
-    Desktop,
+    #[serde(alias = "console")]
+    ConsoleApplication,
+    #[serde(alias = "desktop")]
+    DesktopApplication,
+    #[serde(rename = "inputmethod")]
+    InputMethod,
+    #[serde(alias = "operating-system")]
+    OS,
     Theme,
+    Firmware,
     Addon,
-    Unknown(String),
+    Font,
+    Generic,
+    IconTheme,
+    Localization,
+    Driver,
+    Codec,
 }
 
-impl From<&str> for ApplicationType {
-    fn from(t: &str) -> Self {
-        match t {
-            "desktop" | "desktop-application" => ApplicationType::Desktop,
-            "cli-application" | "cli" => ApplicationType::Cli,
-            "runtime" => ApplicationType::Runtime,
-            "theme" => ApplicationType::Theme,
-            "addon" => ApplicationType::Addon,
-            e => ApplicationType::Unknown(e.to_string()),
-        }
-    }
-}
-
-impl Default for ApplicationType {
+impl Default for ComponentType {
     fn default() -> Self {
-        ApplicationType::Unknown("unknown".to_string())
+        ComponentType::Generic
     }
 }
 
@@ -51,35 +51,16 @@ pub enum ProjectUrl {
     Unknown(Url),
 }
 
-#[derive(Debug, Serialize, PartialEq)]
+#[derive(Debug, Deserialize, Serialize, PartialEq, EnumString)]
 pub enum Kudo {
+    AppMenu,
     HiDpiIcon,
     HighContrast,
     ModernToolkit,
     Notifications,
     SearchProvider,
     UserDocs,
-    Unknown(String),
 }
-
-impl FromStr for Kudo {
-    type Err = anyhow::Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "HiDpiIcon" => Ok(Kudo::HiDpiIcon),
-            "HighContrast" => Ok(Kudo::HighContrast),
-            "ModernToolkit" => Ok(Kudo::ModernToolkit),
-            "Notifications" => Ok(Kudo::Notifications),
-            "SearchProvider" => Ok(Kudo::SearchProvider),
-            "UserDocs" => Ok(Kudo::UserDocs),
-            e => Ok(Kudo::Unknown(e.into())),
-        }
-    }
-}
-
-use std::convert::TryFrom;
-#[non_exhaustive]
 pub enum Arch {
     Arm,
     Aarch64,
@@ -87,30 +68,6 @@ pub enum Arch {
     X86_64,
 }
 
-impl TryFrom<&'static str> for Arch {
-    type Error = &'static str;
-
-    fn try_from(value: &str) -> Result<Self, Self::Error> {
-        match value {
-            "arm" => Ok(Arch::Arm),
-            "aarch64" => Ok(Arch::Aarch64),
-            "i386" => Ok(Arch::I386),
-            "x86_64" => Ok(Arch::X86_64),
-            _ => Err("Failed to find the corresponding arch"),
-        }
-    }
-}
-
-impl Into<&'static str> for Arch {
-    fn into(self) -> &'static str {
-        match self {
-            Arch::Arm => "arm",
-            Arch::Aarch64 => "aarch64",
-            Arch::I386 => "i386",
-            Arch::X86_64 => "x86_64",
-        }
-    }
-}
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum Provide {
@@ -123,7 +80,14 @@ pub enum Provide {
     Python3(String),
     Dbus(String),
     Id(String),
-    Unknown(String),
+    Codec(String),
+}
+
+#[test]
+fn test_provide_firmware() {
+    let x = r"<firmware type='runtime'>ipw2200-bss.fw</firmware>";
+    let p: Provide = quick_xml::de::from_str(&x).unwrap();
+    assert_eq!(p, Provide::Firmware("ipw2200-bss.fw".into()));
 }
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]

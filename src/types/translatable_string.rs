@@ -12,6 +12,16 @@ impl TranslatableString {
             variants: HashMap::new(),
         }
     }
+
+    pub fn with_default(text: &str) -> Self {
+        let mut t = Self::new();
+        t.add_for_lang("default", text);
+        t
+    }
+
+    pub fn add_for_lang(&mut self, lang: &str, text: &str) {
+        self.variants.insert(lang.into(), text.to_string());
+    }
 }
 
 #[derive(Debug, Serialize, PartialEq, Default)]
@@ -32,6 +42,6 @@ impl TranslatableVec {
             .and_modify(|sentenses| {
                 sentenses.push(text.into());
             })
-            .or_insert(vec![text.to_string()]);
+            .or_insert_with(|| vec![text.to_string()]);
     }
 }

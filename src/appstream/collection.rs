@@ -1,0 +1,111 @@
+use super::AppId;
+use super::Component;
+use anyhow::Result;
+use flate2::read::GzDecoder;
+use quick_xml::de::from_str;
+use serde::Deserialize;
+use std::fs::File;
+use std::io::prelude::*;
+use std::path::PathBuf;
+
+#[derive(Debug, Deserialize, PartialEq)]
+pub struct Collection {
+    version: String,
+    #[serde(default)]
+    origin: Option<String>,
+    #[serde(rename = "component", default)]
+    pub components: Vec<Component>,
+    // TODO: architecture
+}
+
+impl Collection {
+    pub fn from_path(path: PathBuf) -> Result<Self> {
+        let xml = std::fs::read_to_string(path)?;
+
+        let collection: Collection = from_str(&xml)?;
+        Ok(collection)
+    }
+
+    pub fn from_gzipped(path: PathBuf) -> Result<Self> {
+        let f = File::open(path)?;
+
+        let mut d = GzDecoder::new(f);
+        let mut xml = String::new();
+        d.read_to_string(&mut xml)?;
+
+        let collection: Collection = from_str(&xml)?;
+        Ok(collection)
+    }
+
+    pub fn find_by_id(&self, id: AppId) -> Vec<&Component> {
+        self.components
+            .iter()
+            .filter(|c| c.id.0 == id.0)
+            .collect::<Vec<&Component>>()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::appstream::{Category, ComponentType, Icon, Provide};
+
+    #[test]
+    fn collection_test_1() {
+        let c = Collection::from_path("./src/appstream/tests/collections/spec_example.xml".into())
+            .unwrap();
+
+        assert_eq!(c.version, "0.10");
+
+        let first = c.components.get(0).unwrap();
+        assert_eq!(first._type, ComponentType::DesktopApplication);
+
+        assert_eq!(first.provides, vec![Provide::Binary("firefox".into())]);
+        assert_eq!(
+            first.categories,
+            vec![
+                Category::Unknown("network".into()),
+                Category::Unknown("webbrowser".into())
+            ]
+        );
+        assert_eq!(
+            first.mimetypes,
+            vec![
+                "text/html",
+                "text/xml",
+                "application/xhtml+xml",
+                "application/vnd.mozilla.xul+xml",
+                "text/mml",
+                "application/x-xpinstall",
+                "x-scheme-handler/http",
+                "x-scheme-handler/https",
+            ]
+        );
+        assert_eq!(
+            first.icons,
+            vec![
+                Icon::Stock("web-browser".into()),
+                Icon::Cached("firefox.png".into()),
+            ]
+        );
+
+        let second = c.components.get(1).unwrap();
+        assert_eq!(second._type, ComponentType::Generic);
+        assert_eq!(
+            second.provides,
+            vec![
+                Provide::Library("libpulse-simple.so.0".into()),
+                Provide::Library("libpulse.so.0".into()),
+                Provide::Binary("start-pulseaudio-kde".into()),
+                Provide::Binary("start-pulseaudio-x11".into()),
+            ]
+        );
+
+        let third = c.components.get(2).unwrap();
+        assert_eq!(third._type, ComponentType::Font);
+        assert_eq!(
+            third.provides,
+            vec![Provide::Font("LinLibertine_M.otf".into())]
+        );
+    }
+}
