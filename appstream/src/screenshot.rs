@@ -1,5 +1,5 @@
 use super::de::some_translatable_deserialize;
-use crate::types::TranslatableString;
+use super::translatable_string::TranslatableString;
 use serde::de;
 use serde::{Deserialize, Serialize};
 use url::Url;
@@ -19,6 +19,8 @@ pub struct Screenshot {
         default
     )]
     images: Vec<Image>,
+    #[serde(rename = "video", default)]
+    videos: Vec<Video>,
 }
 
 fn screenshot_image_deserialize<'de, D>(deserializer: D) -> Result<Vec<Image>, D::Error>
@@ -39,11 +41,13 @@ where
     Ok(pimages
         .into_iter()
         .map(
-            |pi| match pi._type.unwrap_or("source".to_string()).as_ref() {
+            |pi| match pi._type.unwrap_or_else(|| "source".to_string()).as_ref() {
                 "thumbnail" => Image::Thumbnail {
                     url: pi.url,
-                    width: pi.width,
-                    height: pi.height,
+                    width: pi.width.expect("screenshots thumbnails must have a width"),
+                    height: pi
+                        .height
+                        .expect("screenshots thumbnails must have a height"),
                 },
                 _ => Image::Source {
                     url: pi.url,
@@ -74,9 +78,23 @@ pub enum Image {
     },
     Thumbnail {
         url: Url,
-        width: Option<u32>,
-        height: Option<u32>,
+        width: u32,
+        height: u32,
     },
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
+pub struct Video {
+    #[serde(default)]
+    width: Option<u32>,
+    #[serde(default)]
+    height: Option<u32>,
+    #[serde(default)]
+    codec: Option<String>,
+    #[serde(default)]
+    container: Option<String>,
+    #[serde(rename = "$value")]
+    url: Url,
 }
 
 #[cfg(test)]
@@ -131,15 +149,37 @@ mod tests {
                 },
                 Image::Thumbnail {
                     url: Url::from_str("https://www.example.org/en_US/main-large.png").unwrap(),
-                    width: Some(752),
-                    height: Some(423)
+                    width: 752,
+                    height: 423
                 },
                 Image::Thumbnail {
                     url: Url::from_str("https://www.example.org/en_US/main-small.png").unwrap(),
-                    width: Some(112),
-                    height: Some(63)
+                    width: 112,
+                    height: 63
                 }
             ]
+        );
+    }
+
+    #[test]
+    fn screenshot_video() {
+        let xml = r"
+            <screenshot>
+                <video codec='av1' width='1600' height='900'>https://example.com/foobar/screencast.mkv</video>
+            </screenshot>";
+        let s: Screenshot = quick_xml::de::from_str(&xml).unwrap();
+
+        assert_eq!(s.is_default, false);
+
+        assert_eq!(
+            s.videos,
+            vec![Video {
+                url: Url::from_str("https://example.com/foobar/screencast.mkv").unwrap(),
+                width: Some(1600),
+                height: Some(900),
+                codec: Some("av1".to_string()),
+                container: None,
+            },]
         );
     }
 }

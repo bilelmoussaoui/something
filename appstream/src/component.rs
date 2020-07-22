@@ -1,9 +1,9 @@
 use super::de::*;
-use super::{
-    AppId, Bundle, Category, ComponentType, ContentRating, Icon, Kudo, Language, Launchable,
-    ProjectUrl, Provide, Release, Screenshot,
+use super::enums::{
+    Bundle, Category, ComponentType, Icon, Kudo, Launchable, ProjectUrl, Provide, Translation,
 };
-use crate::types::{TranslatableString, TranslatableVec};
+use super::translatable_string::{TranslatableString, TranslatableVec};
+use super::{AppId, ContentRating, Language, License, Release, Screenshot};
 use anyhow::Result;
 use flate2::read::GzDecoder;
 use quick_xml::de::from_str;
@@ -26,12 +26,14 @@ pub struct Component {
         default
     )]
     pub summary: Option<TranslatableString>,
-    pub project_license: Option<String>,
-    pub metadata_license: Option<String>,
+    #[serde(default, deserialize_with = "license_deserialize")]
+    pub project_license: Option<License>,
+    #[serde(default, deserialize_with = "license_deserialize")]
+    pub metadata_license: Option<License>,
     pub project_group: Option<String>,
     pub compulsory_for_desktop: Option<String>,
-    #[serde(default)]
-    pub extends: Vec<String>,
+    #[serde(default, deserialize_with = "extends_deserialize")]
+    pub extends: Vec<AppId>,
 
     #[serde(rename = "icon", deserialize_with = "icon_deserialize", default)]
     pub icons: Vec<Icon>,
@@ -54,7 +56,9 @@ pub struct Component {
         default
     )]
     pub launchables: Vec<Launchable>,
-    #[serde(rename = "bundle", default)]
+    #[serde(default)]
+    pub pkgname: Option<String>,
+    #[serde(rename = "bundle", deserialize_with = "bundle_deserialize", default)]
     pub bundle: Vec<Bundle>,
     #[serde(default, deserialize_with = "releases_deserialize")]
     pub releases: Vec<Release>,
@@ -72,6 +76,8 @@ pub struct Component {
     pub content_rating: Option<ContentRating>,
     #[serde(default, deserialize_with = "provides_deserialize")]
     pub provides: Vec<Provide>,
+    #[serde(default, deserialize_with = "translation_deserialize")]
+    pub translation: Vec<Translation>,
 }
 
 impl Component {
@@ -93,31 +99,34 @@ impl Component {
         Ok(component)
     }
 }
+
 #[cfg(test)]
 mod tests {
 
     use super::Component;
-    use crate::appstream::{
-        ComponentType, Language, Launchable, ProjectUrl, Provide, Release, ReleaseType,
-    };
-    use crate::types::TranslatableString;
+    use crate::enums::{ComponentType, Launchable, ProjectUrl, Provide};
+    use crate::translatable_string::TranslatableString;
+    use crate::{AppId, Language, Release, ReleaseType};
     use chrono::{TimeZone, Utc};
+    use std::convert::TryFrom;
     use std::str::FromStr;
     use url::Url;
 
     #[test]
     fn desktop_application_component() {
-        let c: Component =
-            Component::from_path("./src/appstream/tests/desktop.xml".into()).unwrap();
+        let c: Component = Component::from_path("./tests/desktop.xml".into()).unwrap();
         assert_eq!(c._type, ComponentType::DesktopApplication);
         assert_eq!(
             c.provides,
-            vec![Provide::Binary("gnome-power-statistics".into())]
+            vec![
+                Provide::Binary("gnome-power-statistics".into()),
+                Provide::Id("gnome-power-statistics.desktop".into())
+            ]
         );
         assert_eq!(
             c.launchables,
             vec![Launchable::DesktopId(
-                "org.gnome.gnome-power-statistics.desktop".into()
+                "org.gnome.gnome-power-statistics.desktop".to_string()
             )]
         );
         assert_eq!(c.project_group, Some("GNOME".into()));
@@ -125,14 +134,13 @@ mod tests {
 
     #[test]
     fn runtime_component() {
-        let c: Component =
-            Component::from_path("./src/appstream/tests/runtime.xml".into()).unwrap();
+        let c: Component = Component::from_path("./tests/runtime.xml".into()).unwrap();
         assert_eq!(c._type, ComponentType::Runtime);
     }
 
     #[test]
     fn os_component() {
-        let c: Component = Component::from_path("./src/appstream/tests/os.xml".into()).unwrap();
+        let c: Component = Component::from_path("./tests/os.xml".into()).unwrap();
         assert_eq!(c._type, ComponentType::OS);
         assert_eq!(
             c.releases,
@@ -157,14 +165,14 @@ mod tests {
 
     #[test]
     fn localization_component() {
-        let c = Component::from_path("./src/appstream/tests/localization.xml".into()).unwrap();
+        let c = Component::from_path("./tests/localization.xml".into()).unwrap();
         assert_eq!(c._type, ComponentType::Localization);
         assert_eq!(
             c.extends,
             vec![
-                "org.kde.plasmashell".to_string(),
-                "org.kde.gwenview.desktop".to_string(),
-                "org.kde.dolphin.desktop".to_string(),
+                AppId::try_from("org.kde.plasmashell").unwrap(),
+                AppId::try_from("org.kde.gwenview.desktop").unwrap(),
+                AppId::try_from("org.kde.dolphin.desktop").unwrap(),
             ]
         );
 
@@ -189,7 +197,7 @@ mod tests {
 
     #[test]
     fn driver_component() {
-        let c: Component = Component::from_path("./src/appstream/tests/driver.xml".into()).unwrap();
+        let c: Component = Component::from_path("./tests/driver.xml".into()).unwrap();
         assert_eq!(c._type, ComponentType::Driver);
         assert_eq!(
             c.provides,
@@ -201,7 +209,7 @@ mod tests {
 
     #[test]
     fn firmware_component() {
-        let c = Component::from_path("./src/appstream/tests/firmware.xml".into()).unwrap();
+        let c = Component::from_path("./tests/firmware.xml".into()).unwrap();
         assert_eq!(c._type, ComponentType::Firmware);
         assert_eq!(
             c.developer_name,
@@ -218,7 +226,7 @@ mod tests {
 
     #[test]
     fn input_method_component() {
-        let c = Component::from_path("./src/appstream/tests/input-method.xml".into()).unwrap();
+        let c = Component::from_path("./tests/input-method.xml".into()).unwrap();
         assert_eq!(c._type, ComponentType::InputMethod);
         assert_eq!(c.metadata_license, Some("FSFAP".into()));
         assert_eq!(c.name, TranslatableString::with_default("Mathwriter"));
@@ -238,14 +246,14 @@ mod tests {
 
     #[test]
     fn codec_component() {
-        let c = Component::from_path("./src/appstream/tests/codec.xml".into()).unwrap();
+        let c = Component::from_path("./tests/codec.xml".into()).unwrap();
         assert_eq!(c._type, ComponentType::Codec);
     }
 
     #[test]
     fn icon_theme_component() {
-        let c = Component::from_path("./src/appstream/tests/icon-theme.xml".into()).unwrap();
-
+        let c = Component::from_path("./tests/icon-theme.xml".into()).unwrap();
+        assert_eq!(c._type, ComponentType::IconTheme);
         assert_eq!(c.metadata_license, Some("FSFAP".into()));
         assert_eq!(c.project_license, Some("GPL-3.0".into()));
         assert_eq!(c.name, TranslatableString::with_default("Papirus"));
@@ -259,7 +267,7 @@ mod tests {
 
     #[test]
     fn addon_component() {
-        let c = Component::from_path("./src/appstream/tests/addon.xml".into()).unwrap();
+        let c = Component::from_path("./tests/addon.xml".into()).unwrap();
 
         assert_eq!(c._type, ComponentType::Addon);
         assert_eq!(c.name, TranslatableString::with_default("Code Assistance"));
@@ -278,12 +286,12 @@ mod tests {
         );
         assert_eq!(c.metadata_license, Some("FSFAP".into()));
         assert_eq!(c.project_license, Some("GPL-3.0+".into()));
-        assert_eq!(c.extends, vec!["org.gnome.gedit".to_string()]);
+        assert_eq!(c.extends, vec![AppId::try_from("org.gnome.gedit").unwrap()]);
     }
 
     #[test]
     fn font_component() {
-        let c = Component::from_path("./src/appstream/tests/font.xml".into()).unwrap();
+        let c = Component::from_path("./tests/font.xml".into()).unwrap();
 
         assert_eq!(c.metadata_license, Some("MIT".into()));
         assert_eq!(c.project_license, Some("OFL-1.1".into()));
@@ -308,7 +316,7 @@ mod tests {
 
     #[test]
     fn generic_component() {
-        let c = Component::from_path("./src/appstream/tests/generic.xml".into()).unwrap();
+        let c = Component::from_path("./tests/generic.xml".into()).unwrap();
         assert_eq!(
             c.urls.first().unwrap(),
             &ProjectUrl::Homepage(Url::from_str("http://www.example.org").unwrap())

@@ -1,3 +1,4 @@
+use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;
 
@@ -16,6 +17,7 @@ impl TryFrom<&str> for AppId {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::convert::TryFrom;
 
     #[test]
     fn validate_app_id() {

@@ -1,11 +1,10 @@
-use super::{
-    AppId, Category, ContentRating, Icon, Kudo, Language, Launchable, ProjectUrl, Provide, Release,
-    Screenshot,
-};
-use crate::types::{TranslatableString, TranslatableVec};
+use super::enums::{Bundle, Category, Icon, Kudo, Launchable, ProjectUrl, Provide, Translation};
+use super::translatable_string::{TranslatableString, TranslatableVec};
+use super::{AppId, ContentRating, Language, License, Release, Screenshot};
 use chrono::{DateTime, NaiveDate, NaiveDateTime, TimeZone, Utc};
 use serde::de;
 use serde::Deserialize;
+use std::convert::TryFrom;
 use std::str::FromStr;
 use url::Url;
 
@@ -27,7 +26,7 @@ where
     Ok(picons
         .into_iter()
         .map(
-            |pi| match pi._type.unwrap_or("cached".to_string()).as_ref() {
+            |pi| match pi._type.unwrap_or_else(|| "cached".to_string()).as_ref() {
                 "stock" => Icon::Stock(pi.path),
                 "local" => Icon::Local {
                     path: pi.path.into(),
@@ -77,6 +76,58 @@ where
     Ok(AppId { 0: s })
 }
 
+pub(crate) fn license_deserialize<'de, D>(deserializer: D) -> Result<Option<License>, D::Error>
+where
+    D: de::Deserializer<'de>,
+{
+    match String::deserialize(deserializer) {
+        Ok(s) => Ok(Some(License(s))),
+        _ => Ok(None),
+    }
+}
+
+pub(crate) fn bundle_deserialize<'de, D>(deserializer: D) -> Result<Vec<Bundle>, D::Error>
+where
+    D: de::Deserializer<'de>,
+{
+    #[derive(Debug, Deserialize)]
+    struct PBundle {
+        #[serde(rename = "type")]
+        _type: String,
+        runtime: Option<String>,
+        sdk: String,
+        #[serde(rename = "$value", default)]
+        name: String,
+    };
+
+    let bundles: Vec<PBundle> = Vec::deserialize(deserializer)?;
+    Ok(bundles
+        .into_iter()
+        .map(|b| match b._type.as_ref() {
+            "flatpak" => Bundle::Flatpak {
+                name: b.name,
+                sdk: b.sdk,
+                runtime: b.runtime,
+            },
+            "limba" => Bundle::Limba(b.name),
+            "snap" => Bundle::Snap(b.name),
+            "appimage" => Bundle::AppImage(b.name),
+            _ => Bundle::Tarball(b.name),
+        })
+        .collect::<Vec<Bundle>>())
+}
+
+pub(crate) fn extends_deserialize<'de, D>(deserializer: D) -> Result<Vec<AppId>, D::Error>
+where
+    D: de::Deserializer<'de>,
+{
+    let extends: Vec<String> = Vec::deserialize(deserializer)?;
+    Ok(extends
+        .into_iter()
+        .map(|e| AppId::try_from(e.as_ref()).expect("Invalid AppId"))
+        .collect::<Vec<AppId>>())
+}
+
 pub(crate) fn provides_deserialize<'de, D>(deserializer: D) -> Result<Vec<Provide>, D::Error>
 where
     D: de::Deserializer<'de>,
@@ -124,7 +175,7 @@ where
 
     let mut translatable = TranslatableVec::new();
     s.keywords.into_iter().for_each(|t| {
-        translatable.add_for_lang(&t.lang.unwrap_or("default".to_string()), &t.text);
+        translatable.add_for_lang(&t.lang.unwrap_or_else(|| "default".to_string()), &t.text);
     });
     Ok(translatable)
 }
@@ -204,11 +255,11 @@ where
 
     let s: Vec<PTranslatable> = Vec::deserialize(deserializer)?;
 
-    let mut translatable = TranslatableString::new();
+    let mut translatable = TranslatableString::default();
     s.into_iter().for_each(|t| {
         translatable
-            .variants
-            .insert(t.lang.unwrap_or("default".to_string()), t.val);
+            .0
+            .insert(t.lang.unwrap_or_else(|| "default".to_string()), t.val);
     });
     Ok(translatable)
 }
@@ -229,13 +280,13 @@ where
 
     let s: Option<Vec<PTranslatable>> = Option::deserialize(deserializer)?;
 
-    let mut translatable = TranslatableString::new();
+    let mut translatable = TranslatableString::default();
     match s {
         Some(a) => {
             a.into_iter().for_each(|t| {
                 translatable
-                    .variants
-                    .insert(t.lang.unwrap_or("default".to_string()), t.val);
+                    .0
+                    .insert(t.lang.unwrap_or_else(|| "default".to_string()), t.val);
             });
             Ok(Some(translatable))
         }
@@ -335,8 +386,34 @@ where
                 "donation" => ProjectUrl::Donation(url),
                 "bugtracker" => ProjectUrl::BugTracker(url),
                 "translate" => ProjectUrl::Translate(url),
+                "faq" => ProjectUrl::Faq(url),
+                "contact" => ProjectUrl::Contact(url),
                 _ => ProjectUrl::Unknown(url),
             }
         })
         .collect::<Vec<ProjectUrl>>())
+}
+
+pub(crate) fn translation_deserialize<'de, D>(deserializer: D) -> Result<Vec<Translation>, D::Error>
+where
+    D: de::Deserializer<'de>,
+{
+    #[derive(Debug, Deserialize)]
+    struct PTranslate {
+        #[serde(rename = "type", default)]
+        pub _type: String,
+        #[serde(rename = "$value", default)]
+        pub name: String,
+    };
+
+    let translations: Vec<PTranslate> = Vec::deserialize(deserializer)?;
+
+    Ok(translations
+        .into_iter()
+        .map(|t| match t._type.as_str() {
+            "qt" => Translation::Qt(t.name),
+            "gettext" => Translation::Gettext(t.name),
+            _ => Translation::Unknown,
+        })
+        .collect::<Vec<Translation>>())
 }

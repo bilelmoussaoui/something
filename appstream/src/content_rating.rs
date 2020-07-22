@@ -1,4 +1,4 @@
-use super::ContentAttribute;
+use super::enums::ContentAttribute;
 use serde::{Deserialize, Serialize};
 use std::cmp::{Ord, Ordering};
 #[derive(Debug, Serialize, Deserialize, PartialEq)]

@@ -11,6 +11,8 @@ pub enum ComponentType {
     ConsoleApplication,
     #[serde(alias = "desktop")]
     DesktopApplication,
+    #[serde(alias = "webapp")]
+    WebApplication,
     #[serde(rename = "inputmethod")]
     InputMethod,
     #[serde(alias = "operating-system")]
@@ -48,7 +50,25 @@ pub enum ProjectUrl {
     Homepage(Url),
     BugTracker(Url),
     Help(Url),
+    Faq(Url),
+    Contact(Url),
     Unknown(Url),
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
+pub enum Icon {
+    Stock(String),
+    Cached(String),
+    Remote {
+        url: Url,
+        width: Option<u32>,
+        height: Option<u32>,
+    },
+    Local {
+        path: PathBuf,
+        width: Option<u32>,
+        height: Option<u32>,
+    },
 }
 
 #[derive(Debug, Deserialize, Serialize, PartialEq, EnumString)]
@@ -61,12 +81,6 @@ pub enum Kudo {
     SearchProvider,
     UserDocs,
 }
-pub enum Arch {
-    Arm,
-    Aarch64,
-    I386,
-    X86_64,
-}
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "lowercase")]
@@ -78,7 +92,7 @@ pub enum Provide {
     Firmware(String),
     Python2(String),
     Python3(String),
-    Dbus(String),
+    DBus(String),
     Id(String),
     Codec(String),
 }
@@ -163,4 +177,184 @@ pub enum ContentState {
     Moderate,
     #[serde(rename = "intense")]
     Intense,
+}
+
+#[derive(Debug, Deserialize, Serialize, PartialEq)]
+#[serde(rename_all = "kebab-case", tag = "type", content = "$value")]
+pub enum Translation {
+    Gettext(String),
+    Qt(String),
+    Unknown,
+}
+
+#[derive(Debug, Deserialize, Serialize, PartialEq)]
+pub enum Bundle {
+    Limba(String),
+    Flatpak {
+        runtime: Option<String>,
+        sdk: String,
+        #[serde(rename = "$value", default)]
+        name: String,
+    },
+    AppImage(String),
+    Snap(String),
+    Tarball(String),
+}
+
+#[derive(Debug, EnumString, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "PascalCase")]
+pub enum Category {
+    // Main categories
+    // https://specifications.freedesktop.org/menu-spec/latest/apa.html#main-category-registry
+    AudioVideo,
+    Audio,
+    Video,
+    Development,
+    Education,
+    Game,
+    Graphics,
+    #[serde(alias = "network")]
+    Network,
+    Office,
+    Science,
+    Settings,
+    System,
+    Utility,
+    // Additional categories
+    // https://specifications.freedesktop.org/menu-spec/latest/apas02.html
+    Building,
+    Debugger,
+    IDE,
+    GUIDesigner,
+    Profiling,
+    RevisionControl,
+    Translation,
+    Calendar,
+    ContactManagement,
+    Database,
+    Dictionnary,
+    Chart,
+    Email,
+    Finance,
+    FlowChart,
+    PDA,
+    ProjectManagement,
+    Presentation,
+    Spreadsheet,
+    WordProcessor,
+    TwoDGraphics,
+    VectorGraphics,
+    RasterGraphics,
+    ThreeDGraphics,
+    Scanning,
+    OCR,
+    Photography,
+    Publishing,
+    Viewer,
+    TextTools,
+    DesktopSettings,
+    HardwareSettings,
+    Printing,
+    PackageManager,
+    Dialup,
+    InstantMessaging,
+    Chat,
+    IRCClient,
+    Feed,
+    HamRadio,
+    News,
+    P2P,
+    RemoteAccess,
+    Telephony,
+    TelephonyTools,
+    VideoConference,
+    #[serde(alias = "webbrowser")]
+    WebBrowser,
+    #[serde(alias = "webdevelopment")]
+    WebDevelopment,
+    Midi,
+    Mixer,
+    Sequencer,
+    Tuner,
+    TV,
+    AudioVideoEditing,
+    Player,
+    Recorder,
+    DiscBurning,
+    ActionGame,
+    AdventureGame,
+    ArcadeGame,
+    BoardGame,
+    BlocksGame,
+    CardGame,
+    KidsGame,
+    LogicGame,
+    RolePlaying,
+    Shooter,
+    Simulation,
+    SportsGame,
+    StrategyGame,
+    Art,
+    Construction,
+    Music,
+    Languages,
+    ArtificialIntelligence,
+    Astronomy,
+    Biology,
+    Chemistry,
+    ComputerScience,
+    DataVisualization,
+    Economy,
+    Electricity,
+    Geography,
+    Geology,
+    Geoscience,
+    History,
+    Humanities,
+    ImageProcessing,
+    Literature,
+    Maps,
+    Math,
+    NumericalAnalysis,
+    MedicalSoftware,
+    Physics,
+    Robotics,
+    Spirituality,
+    Sports,
+    ParallelComputing,
+    Amusement,
+    Archiving,
+    Compression,
+    Electronics,
+    Emulator,
+    Engineering,
+    FileTools,
+    FileManager,
+    TerminalEmulator,
+    FileTransfer,
+    Filesystem,
+    Monitor,
+    Security,
+    Accessibility,
+    Calculator,
+    Clock,
+    TextEditor,
+    Documentation,
+    Adult,
+    Core,
+    KDE,
+    GNOME,
+    XFCE,
+    GTK,
+    Qt,
+    Motif,
+    Java,
+    ConsoleOnly,
+    // Reserved categories
+    // https://specifications.freedesktop.org/menu-spec/latest/apas03.html
+    Screensaver,
+    TrayIcon,
+    Applet,
+    Shell,
+    Unknown(String),
 }

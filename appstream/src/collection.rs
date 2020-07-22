@@ -48,12 +48,13 @@ impl Collection {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::appstream::{Category, ComponentType, Icon, Provide};
+    use crate::enums::{Category, ComponentType, Icon, Provide};
+    use std::str::FromStr;
+    use url::Url;
 
     #[test]
     fn collection_test_1() {
-        let c = Collection::from_path("./src/appstream/tests/collections/spec_example.xml".into())
-            .unwrap();
+        let c = Collection::from_path("./tests/collections/spec_example.xml".into()).unwrap();
 
         assert_eq!(c.version, "0.10");
 
@@ -107,5 +108,34 @@ mod tests {
             third.provides,
             vec![Provide::Font("LinLibertine_M.otf".into())]
         );
+    }
+    #[test]
+    fn collection_test_2() {
+        let c = Collection::from_path("./tests/collections/fedora-other-repos.xml".into()).unwrap();
+
+        assert_eq!(c.version, "0.8");
+        c.components.iter().for_each(|comp| {
+            assert_eq!(comp._type, ComponentType::Generic);
+        });
+
+        assert_eq!(
+            c.components.get(0).unwrap().pkgname,
+            Some("adobe-release-x86_64".into())
+        );
+    }
+    #[test]
+    fn collection_test_3() {
+        let c = Collection::from_path("./tests/collections/fedora-web-apps.xml".into()).unwrap();
+
+        assert_eq!(c.version, "0.8");
+        let comp = c.components.get(0).unwrap();
+        assert_eq!(comp._type, ComponentType::WebApplication);
+        assert_eq!(comp.icons, vec![
+            Icon::Remote{
+                url: Url::from_str("http://g-ecx.images-amazon.com/images/G/01/kindle/www/ariel/kindle-icon-kcp120._SL90_.png").unwrap(),
+                width: None,
+                height: None
+            }
+        ]);
     }
 }

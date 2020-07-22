@@ -41,6 +41,7 @@
 
     <provides>
         <binary>gnome-power-statistics</binary>
+        <id>gnome-power-statistics.desktop</id>
     </provides>
 
     <releases>
