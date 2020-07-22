@@ -4,12 +4,9 @@
 extern crate rocket;
 mod routes;
 mod types;
-use appstream::{AppId, Collection, Component};
 use bson::Document;
 use rocket::http::Method;
 use rocket::response::content;
-use serde_json::{Map, Value};
-use std::convert::TryFrom;
 
 use rocket_cors::{AllowedHeaders, AllowedOrigins};
 #[get("/<app_id>")]

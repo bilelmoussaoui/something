@@ -16,7 +16,7 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 gio = "0.8"
 glib = "0.9"
-ostree = { version = "0.7", features = ["v2020_1"] }
+ostree = { version = "0.7", features = ["v2018_7"] }
 zvariant = "2.0"
 zvariant_derive = "2.0"
 byteorder = "1.3"
