@@ -14,16 +14,16 @@ use std::convert::TryFrom;
 use rocket_cors::{AllowedHeaders, AllowedOrigins};
 #[get("/<app_id>")]
 fn index(app_id: String) -> anyhow::Result<content::Json<String>> {
-
     let client = mongodb::sync::Client::with_uri_str("mongodb://localhost:27017/")?;
     let coll = client.database("flathub").collection("components");
-    let doc: Document = coll.find_one(Some(bson::doc! {"id" : app_id}), None)?.unwrap();
+    let doc: Document = coll
+        .find_one(Some(bson::doc! {"id" : app_id}), None)?
+        .unwrap();
     let j = serde_json::to_string(&doc).unwrap();
     Ok(content::Json(j))
 }
 
 fn main() -> anyhow::Result<()> {
-
     let allowed_origins = AllowedOrigins::some_exact(&["http://localhost:1234"]);
 
     let cors = rocket_cors::CorsOptions {
@@ -34,10 +34,12 @@ fn main() -> anyhow::Result<()> {
         ..Default::default()
     }
     .to_cors()?;
-    
-    rocket::ignite().mount("/", rocket_cors::catch_all_options_routes())
-                    .mount("/", routes![index]).attach(cors)
-                    .launch();
+
+    rocket::ignite()
+        .mount("/", rocket_cors::catch_all_options_routes())
+        .mount("/", routes![index])
+        .attach(cors)
+        .launch();
     /*
     let client = mongodb::sync::Client::with_uri_str("mongodb://localhost:27017/")?;
     let coll = client.database("flathub").collection("components");
