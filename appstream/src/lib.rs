@@ -19,3 +19,4 @@ pub use language::Language;
 pub use license::License;
 pub use release::{Release, ReleaseSize, ReleaseType};
 pub use screenshot::{Image, Screenshot, Video};
+pub use translatable_string::TranslatableString;
