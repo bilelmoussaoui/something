@@ -10,17 +10,17 @@ pub struct Screenshot {
         deserialize_with = "screenshot_type_deserialize",
         default
     )]
-    is_default: bool,
+    pub is_default: bool,
     #[serde(deserialize_with = "some_translatable_deserialize", default)]
-    caption: Option<TranslatableString>,
+    pub caption: Option<TranslatableString>,
     #[serde(
         rename = "image",
         deserialize_with = "screenshot_image_deserialize",
         default
     )]
-    images: Vec<Image>,
+    pub images: Vec<Image>,
     #[serde(rename = "video", default)]
-    videos: Vec<Video>,
+    pub videos: Vec<Video>,
 }
 
 fn screenshot_image_deserialize<'de, D>(deserializer: D) -> Result<Vec<Image>, D::Error>
@@ -86,15 +86,15 @@ pub enum Image {
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct Video {
     #[serde(default)]
-    width: Option<u32>,
+    pub width: Option<u32>,
     #[serde(default)]
-    height: Option<u32>,
+    pub height: Option<u32>,
     #[serde(default)]
-    codec: Option<String>,
+    pub codec: Option<String>,
     #[serde(default)]
-    container: Option<String>,
+    pub container: Option<String>,
     #[serde(rename = "$value")]
-    url: Url,
+    pub url: Url,
 }
 
 #[cfg(test)]
