@@ -3,7 +3,7 @@ use super::translatable_string::TranslatableString;
 use serde::de;
 use serde::{Deserialize, Serialize};
 use url::Url;
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct Screenshot {
     #[serde(
         rename = "type",
@@ -68,7 +68,7 @@ where
     Ok(s == "default")
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "kebab-case")]
 pub enum Image {
     Source {
@@ -83,7 +83,7 @@ pub enum Image {
     },
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct Video {
     #[serde(default)]
     width: Option<u32>,

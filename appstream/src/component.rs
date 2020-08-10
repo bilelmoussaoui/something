@@ -12,7 +12,7 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::path::PathBuf;
 
-#[derive(Debug, Deserialize, Serialize, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 pub struct Component {
     #[serde(rename = "type", default)]
     pub _type: ComponentType,

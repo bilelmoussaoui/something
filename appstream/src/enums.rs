@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use strum_macros::EnumString;
 use url::Url;
 
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "kebab-case")]
 pub enum ComponentType {
     Runtime,
@@ -34,7 +34,7 @@ impl Default for ComponentType {
     }
 }
 
-#[derive(Debug, Serialize, PartialEq)]
+#[derive(Clone, Debug, Serialize, PartialEq)]
 pub enum Launchable {
     DesktopId(String),
     Service(String),
@@ -43,7 +43,7 @@ pub enum Launchable {
     Unknown(String),
 }
 
-#[derive(Debug, Serialize, PartialEq)]
+#[derive(Clone, Debug, Serialize, PartialEq)]
 pub enum ProjectUrl {
     Donation(Url),
     Translate(Url),
@@ -55,7 +55,7 @@ pub enum ProjectUrl {
     Unknown(Url),
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub enum Icon {
     Stock(String),
     Cached(String),
@@ -71,7 +71,7 @@ pub enum Icon {
     },
 }
 
-#[derive(Debug, Deserialize, Serialize, PartialEq, EnumString)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, EnumString)]
 pub enum Kudo {
     AppMenu,
     HiDpiIcon,
@@ -82,7 +82,7 @@ pub enum Kudo {
     UserDocs,
 }
 
-#[derive(Debug, Deserialize, Serialize, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum Provide {
     Library(PathBuf),
@@ -104,7 +104,7 @@ fn test_provide_firmware() {
     assert_eq!(p, Provide::Firmware("ipw2200-bss.fw".into()));
 }
 
-#[derive(Debug, Deserialize, Serialize, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 #[serde(tag = "id", content = "$value")]
 pub enum ContentAttribute {
     #[serde(rename = "violence-cartoon")]
@@ -167,7 +167,7 @@ pub enum ContentAttribute {
     MoneyGambling(ContentState),
 }
 
-#[derive(Debug, Deserialize, Serialize, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 pub enum ContentState {
     #[serde(rename = "none")]
     None,
@@ -179,7 +179,7 @@ pub enum ContentState {
     Intense,
 }
 
-#[derive(Debug, Deserialize, Serialize, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "kebab-case", tag = "type", content = "$value")]
 pub enum Translation {
     Gettext(String),
@@ -187,7 +187,7 @@ pub enum Translation {
     Unknown,
 }
 
-#[derive(Debug, Deserialize, Serialize, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 pub enum Bundle {
     Limba(String),
     Flatpak {
@@ -201,7 +201,7 @@ pub enum Bundle {
     Tarball(String),
 }
 
-#[derive(Debug, EnumString, Serialize, Deserialize, PartialEq)]
+#[derive(Clone, Debug, EnumString, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "PascalCase")]
 pub enum Category {
     // Main categories

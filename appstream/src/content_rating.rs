@@ -1,7 +1,7 @@
 use super::enums::ContentAttribute;
 use serde::{Deserialize, Serialize};
 use std::cmp::{Ord, Ordering};
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct ContentRating {
     #[serde(rename = "type", default)]
     pub version: ContentRatingVersion,
@@ -9,7 +9,7 @@ pub struct ContentRating {
     attributes: Vec<ContentAttribute>,
 }
 
-#[derive(Eq, PartialEq, Deserialize, Serialize, Debug)]
+#[derive(Clone, Eq, PartialEq, Deserialize, Serialize, Debug)]
 pub enum ContentRatingVersion {
     #[serde(rename = "oars-1.0")]
     Oars1_0,

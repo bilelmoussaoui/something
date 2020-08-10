@@ -1,7 +1,7 @@
 use serde::Serialize;
 use std::collections::HashMap;
 
-#[derive(Debug, Serialize, PartialEq)]
+#[derive(Clone, Debug, Serialize, PartialEq)]
 pub struct TranslatableString(pub HashMap<String, String>, bool);
 
 impl Default for TranslatableString {
@@ -26,7 +26,7 @@ impl TranslatableString {
     }
 }
 
-#[derive(Debug, Serialize, PartialEq, Default)]
+#[derive(Clone, Debug, Serialize, PartialEq, Default)]
 pub struct TranslatableVec(pub HashMap<String, Vec<String>>);
 
 impl TranslatableVec {

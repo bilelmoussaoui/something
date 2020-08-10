@@ -2,7 +2,7 @@ use super::de::*;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct Release {
     #[serde(
         deserialize_with = "timestamp_deserialize",
@@ -19,7 +19,7 @@ pub struct Release {
     pub sizes: Vec<ReleaseSize>,
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "kebab-case")]
 pub enum ReleaseType {
     Stable,
@@ -31,7 +31,7 @@ impl Default for ReleaseType {
         ReleaseType::Stable
     }
 }
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[serde(tag = "type", content = "$value", rename_all = "kebab-case")]
 pub enum ReleaseSize {
     Download(u64),
