@@ -5,16 +5,26 @@ import { Button, Carousel } from 'react-materialize'
 
 function Application() {
     const { id } = useParams()
-    const [app, setApp] = useState()
+    const [app, setApp] = useState(null)
 
     useEffect(() => {
         async function fetchApp() {
-            const data = await fetch(`http://localhost:9090/${id}`)
-            setApp(await data.json())
+            const response = await fetch(`http://localhost:9090/api/v2/apps/${id}`, {
+                mod: 'cors',
+                credentials: 'same-origin',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            try {
+                const j = await response.json()
+                setApp(j)
+            } catch (e) {
+            }
         }
         fetchApp()
     }, [id])
-    return app !== undefined ? <div id="application">
+    return app !== null ? <div id="application">
 
         <header>
             {app.type === 'desktop-application' && (

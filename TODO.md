@@ -7,3 +7,5 @@
     - GET: https://flathub.org/api/v1/apps/
     - For later: make the /apps paginatable 
 - Start a new VueJS application and figure out the frontend
+
+- How to create a pagination system using rocket?
