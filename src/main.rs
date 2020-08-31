@@ -1,24 +1,54 @@
-#![feature(proc_macro_hygiene, decl_macro)]
-use anyhow::Result;
+#![feature(async_closure)]
+#[macro_use]
+extern crate log;
 #[macro_use]
 extern crate rocket;
+
 mod routes;
 mod types;
-use rocket::http::Method;
-use rocket_cors::AllowedOrigins;
+use bb8_postgres::{bb8, PostgresConnectionManager};
+use dotenv::dotenv;
+use rocket::Rocket;
+use std::env;
+use std::str::FromStr;
+use tokio_postgres::{Config, NoTls};
+mod embedded {
+    use refinery::embed_migrations;
+    embed_migrations!("migrations");
+}
 
-use rocket_contrib::database;
-use rocket_contrib::databases::mongodb;
+#[launch]
+async fn rocket() -> Rocket {
+    dotenv().ok();
 
-#[database("mongodb://localhost:27017/")]
-pub struct MyDatabase(mongodb::db::Database);
+    let manager = PostgresConnectionManager::new(
+        Config::from_str(&env::var("DATABASE_URL").expect("database url should be set")).unwrap(),
+        NoTls,
+    );
+    let pool = bb8::Pool::builder()
+        .max_size(15)
+        .build(manager)
+        .await
+        .unwrap();
+    /*
+    match embedded::migrations::runner()
+        .run_async(&mut pool.get().await.unwrap())
+        .await
+    {
+        Ok(_) => {
+            let repo = types::Repository::with_collection(
+                "/var/lib/flatpak/appstream/flathub/x86_64/active/appstream.xml.gz",
+            )
+            .expect("failed to parse appstream file");
+            repo.dump(pool.get().await.unwrap()).await;
+        }
+        Err(e) => {
+            error!("Failed to run database migrations: {:?}", e);
+        }
+    }
+    */
 
-fn main() -> Result<()> {
-    let repo = types::Repository::with_collection(
-        "/var/lib/flatpak/appstream/flathub/x86_64/active/appstream.xml.gz",
-    )?;
-    repo.dump()?;
-
+    /*
     let allowed_origins = AllowedOrigins::some_exact(&["http://localhost:1234/"]);
 
     let cors = rocket_cors::CorsOptions {
@@ -28,14 +58,11 @@ fn main() -> Result<()> {
         ..Default::default()
     }
     .to_cors()?;
+    */
     rocket::ignite()
+        //.attach(cors)
         .mount(
             "/api/v2/",
-            routes![routes::index, routes::all, routes::category],
+            routes![routes::all], // routes::index,  routes::category
         )
-        .attach(cors)
-        .attach(MyDatabase::fairing())
-        .launch();
-
-    Ok(())
 }

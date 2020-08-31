@@ -11,3 +11,6 @@ port = 8000
 keep_alive = 5
 log = "critical"
 limits = { forms = 32768 }
+
+[global.databases]
+flathub= { url = "postgres://username:password@localhost:5432/flathub" }

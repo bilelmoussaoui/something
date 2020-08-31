@@ -1,0 +1,18 @@
+version: '3.1'
+
+services:
+
+  db:
+    image: postgres
+    restart: always
+    env_file:
+      - .env # configure postgres
+    #volumes:
+    #  - database-data:/var/lib/postgresql/data/
+    environment:
+      - "POSTGRES_HOST_AUTH_METHOD=trust"
+    ports:
+      - 5432:5432
+
+volumes:
+  database-data: local

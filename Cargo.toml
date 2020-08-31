@@ -6,9 +6,8 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-rocket = { version = "0.4.5"}
-rocket_contrib = { version = "0.4.5", features=["mongodb_pool"]}
-rocket_cors = "0.5"
+rocket = { git = "https://github.com/SergioBenitez/Rocket.git", rev="02b79e28f71ccbd1fce0e369469c92caedb38cd8"}
+rocket_contrib = { git = "https://github.com/SergioBenitez/Rocket.git", rev="02b79e28f71ccbd1fce0e369469c92caedb38cd8", features = ["databases", "postgres_pool"] }
 url = { version = "2.1", features = ["serde"] }
 chrono = { version = "0.4", features = ["serde"] }
 anyhow = "1.0"
@@ -20,6 +19,9 @@ ostree = { version = "0.7", features = ["v2018_7"] }
 zvariant = "2.0"
 zvariant_derive = "2.0"
 byteorder = "1.3"
-mongodb = { version = "1.0", features = ["sync"], default-features = false }
-bson = "1.0"
+tokio-postgres = { version = "0.5", features = ["with-serde_json-1"]}
+bb8-postgres = "0.4"
+refinery = { version = "0.3", features = ["postgres"] }
+dotenv = "0.15"
 appstream = { git = "https://github.com/bilelmoussaoui/appstream.git", features = ["gzip"] }
+log = "0.4"

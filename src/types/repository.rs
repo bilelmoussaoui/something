@@ -1,8 +1,8 @@
+use crate::types::component::*;
 use anyhow::Result;
-use appstream::{Collection, Component};
-use bson::Document;
-use serde_json::{Map, Value};
-use std::convert::TryFrom;
+use appstream::Collection;
+use bb8_postgres::{bb8::PooledConnection, PostgresConnectionManager};
+use tokio_postgres::NoTls;
 
 #[derive(Debug)]
 pub struct Repository {
@@ -16,18 +16,13 @@ impl Repository {
         })
     }
 
-    pub fn dump(&self) -> Result<()> {
-        let client = mongodb::sync::Client::with_uri_str("mongodb://localhost:27017/")?;
-        let coll = client.database("flathub").collection("components");
-        coll.drop(None)?;
-
-        self.collection.components.iter().for_each(|c| {
-            let value: Map<String, Value> =
-                serde_json::from_str(&serde_json::to_string(&c).unwrap()).unwrap();
-            let document = Document::try_from(value).unwrap();
-
-            coll.insert_one(document, None).unwrap();
-        });
+    pub async fn dump(
+        &self,
+        mut conn: PooledConnection<'_, PostgresConnectionManager<NoTls>>,
+    ) -> Result<()> {
+        for c in self.collection.components.iter() {
+            create_component(&mut conn, &c.id.to_string(), c).await?;
+        }
         Ok(())
     }
 }
